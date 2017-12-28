@@ -2325,6 +2325,17 @@ case 0x4532:    // thanks Leodino
         };
         table8_ads = ILI9329_regValues, table_size = sizeof(ILI9329_regValues);
         break;
+    case 0x9999:
+        _lcd_capable = AUTO_READINC | MIPI_DCS_REV1 | MV_AXIS | INVERT_SS | REV_SCREEN;
+        static const uint8_t ILI9999_regValues[] PROGMEM = {
+//            0xF6, 3, 0x01, 0x01, 0x00,  //Interface Control needs EXTC=1 MX_EOR=1, TM=0, RIM=0
+//            0xB6, 3, 0x0A, 0x82, 0x27,  //Display Function [0A 82 27]
+//            0xB7, 1, 0x06,      //Entry Mode Set [06]
+            0xD7, 4, 0x20, 0x80, 0x31, 0x80,  //Display Function [20 80 31 80]
+            0x36, 1, 0x00,      //Memory Access [00] pointless but stops an empty array
+        };
+        table8_ads = ILI9999_regValues, table_size = sizeof(ILI9999_regValues);
+        break;
     case 0x9340:                //ILI9340 thanks Ravi_kanchan2004.
         _lcd_capable = AUTO_READINC | MIPI_DCS_REV1 | MV_AXIS | READ_24BITS | REV_SCREEN;
         goto common_9341;
