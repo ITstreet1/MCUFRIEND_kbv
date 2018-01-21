@@ -267,7 +267,7 @@ int16_t MCUFRIEND_kbv::readGRAM(int16_t x, int16_t y, uint16_t * block, int16_t 
     uint16_t ret, dummy, _MR = _MW;
     int16_t n = w * h, row = 0, col = 0;
     uint8_t r, g, b, tmp;
-    if (!is8347 && _lcd_capable & MIPI_DCS_REV1) // HX8347 uses same register
+    if (!is8347 && _lcd_capable & MIPI_DCS_REV1) // HX8347, HX8352 uses same register
         _MR = 0x2E;
     setAddrWindow(x, y, x + w - 1, y + h - 1);
     while (n > 0) {
@@ -376,7 +376,8 @@ void MCUFRIEND_kbv::setRotation(uint8_t r)
             goto common_MC;
         } else if (is8347) {
             _MC = 0x02, _MP = 0x06, _MW = 0x22, _SC = 0x02, _EC = 0x04, _SP = 0x06, _EP = 0x08;
-			if (_lcd_ID == 0x5252) {
+            if (_lcd_ID == 0x0065) _MC = 0x80, _MP = 0x82;    //HX8352-B
+            if (_lcd_ID == 0x5252) {                          //HX8352-A, must test HX8352-B
 			    val |= 0x02;   //VERT_SCROLLON
 				if (val & 0x10) val |= 0x04;   //if (ML) SS=1 kludge mirror in XXX_REV modes
             }
@@ -508,14 +509,17 @@ void MCUFRIEND_kbv::setAddrWindow(int16_t x, int16_t y, int16_t x1, int16_t y1)
     }
 #endif
     if (_lcd_capable & MIPI_DCS_REV1) {
-#if 1
-        CS_ACTIVE;    //-0.26s, +272B
+#if 0
+        CS_ACTIVE;    //-0.26s, +272B will break is8347 sequence
         WriteCmd(_MC); write8(x>>8); write8(x); write8(x1>>8); write8(x1); 
         WriteCmd(_MP); write8(y>>8); write8(y); write8(y1>>8); write8(y1);
         CS_IDLE;		
 #else
-        WriteCmdParam4(_MC, x >> 8, x, x1 >> 8, x1);
-        WriteCmdParam4(_MP, y >> 8, y, y1 >> 8, y1);
+        if (is8347 && _lcd_ID == 0x0065) {             //HX8352-B
+            WriteCmdParam4(_MC, x >> 8, x, y >> 8, y); //HX8352-B has separate _MC, _SC, _EC
+        }
+        WriteCmdParam4(_SC, x >> 8, x, x1 >> 8, x1);   //regular MIPI has _MC == _SC, _MP == _SP
+        WriteCmdParam4(_SP, y >> 8, y, y1 >> 8, y1);
 #endif
     } else {
         WriteCmdData(_MC, x);
@@ -749,7 +753,7 @@ void MCUFRIEND_kbv::invertDisplay(boolean i)
             // HX8347A: 0x36 is Display Control 10
             if (_lcd_ID == 0x8347 || _lcd_ID == 0x5252) // HX8347-A, HX5352-A
 			    val = _lcd_rev ? 6 : 2;       //INVON id bit#2,  NORON=bit#1
-            else val = _lcd_rev ? 8 : 10;     //HX8347-D, G, I: SCROLLON=bit3, INVON=bit1
+            else val = _lcd_rev ? 8 : 10;     //HX8347-D, G, I, HX8352-B: SCROLLON=bit3, INVON=bit1
             // HX8347: 0x01 Display Mode has diff bit mapping for A, D 
             WriteCmdParamN(0x01, 1, &val);
         } else
