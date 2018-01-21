@@ -515,8 +515,12 @@ void MCUFRIEND_kbv::setAddrWindow(int16_t x, int16_t y, int16_t x1, int16_t y1)
         WriteCmd(_MP); write8(y>>8); write8(y); write8(y1>>8); write8(y1);
         CS_IDLE;		
 #else
-        if (is8347 && _lcd_ID == 0x0065) {             //HX8352-B
-            WriteCmdParam4(_MC, x >> 8, x, y >> 8, y); //HX8352-B has separate _MC, _SC, _EC
+        if (is8347 && _lcd_ID == 0x0065) {             //HX8352-B has separate _MC, _SC
+            uint8_t d[2];
+            d[0] = x >> 8; d[1] = x;
+            WriteCmdParamN(_MC, 2, d);                 //allows !MV_AXIS to work
+            d[0] = y >> 8; d[1] = y;
+            WriteCmdParamN(_MP, 2, d);
         }
         WriteCmdParam4(_SC, x >> 8, x, x1 >> 8, x1);   //regular MIPI has _MC == _SC, _MP == _SP
         WriteCmdParam4(_SP, y >> 8, y, y1 >> 8, y1);
@@ -1633,7 +1637,8 @@ case 0x4532:    // thanks Leodino
 
 #ifdef SUPPORT_8352B
     case 0x0065:       //HX8352-B
-        _lcd_capable = MIPI_DCS_REV1 | MV_AXIS;
+        _lcd_capable = MIPI_DCS_REV1 | MV_AXIS | INVERT_GS | READ_24BITS;
+//        _lcd_capable = MIPI_DCS_REV1 | INVERT_GS | READ_24BITS;
         is8347 = 1;
         static const uint8_t HX8352B_regValues[] PROGMEM = {
             // Register setting for EQ setting
